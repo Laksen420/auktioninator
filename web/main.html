@@ -5,36 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Auktioninator</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <h1>Auktioninator</h1>
+    <div id="app-container" style="display: none;">
+        <header>
+            <h1>Auktioninator</h1>
+            <nav class="tabs">
+                <button class="tab-link active" data-tab="shopping">Shopping</button>
+                <button class="tab-link" data-tab="data">Data</button>
+            </nav>
+        </header>
+
+        <main>
+            <div id="shopping" class="tab-content active">
+                <h2>Item Prices</h2>
+                <div class="controls">
+                    <input type="text" id="search-bar" placeholder="Search for items...">
+                    <button id="search-btn" class="icon-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                            <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                        </svg>
+                    </button>
+                    <button id="fetch-names-btn">Fetch Item Names</button>
+                </div>
+                <table id="price-table">
+                    <thead>
+                        <tr class="sortable-header">
+                            <th data-sort-by="icon">Icon</th>
+                            <th data-sort-by="name">Item Name</th>
+                            <th data-sort-by="id">Item ID</th>
+                            <th data-sort-by="price">Minimum Price (in copper)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Price data will be inserted here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="data" class="tab-content">
+                <h2>Data & Graphs</h2>
+                <div class="chart-container">
+                    <canvas id="price-distribution-chart"></canvas>
+                </div>
+            </div>
+        </main>
+    </div>
 
     <div id="server-selection">
         <h2>Select Server and Realm</h2>
         <select id="server-select"></select>
         <select id="realm-select"></select>
         <button id="confirm-selection">Confirm</button>
-    </div>
-
-    <div id="main-content" style="display: none;">
-        <h2>Item Prices</h2>
-        <div class="controls">
-            <input type="text" id="search-bar" placeholder="Search for items...">
-            <button id="fetch-names-btn">Fetch Item Names</button>
-        </div>
-        <table id="price-table">
-            <thead>
-                <tr>
-                    <th>Icon</th>
-                    <th>Item Name</th>
-                    <th>Item ID</th>
-                    <th>Minimum Price (in copper)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Price data will be inserted here by JavaScript -->
-            </tbody>
-        </table>
     </div>
 
     <script src="main.js"></script>

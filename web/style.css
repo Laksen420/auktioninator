@@ -2,7 +2,15 @@ body {
     font-family: sans-serif;
     background-color: #1a1a1a;
     color: #e0e0e0;
-    margin: 20px;
+    margin: 0;
+    padding: 20px;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
 }
 
 h1, h2 {
@@ -73,3 +81,68 @@ button:hover {
 .gold { color: #ffd700; }
 .silver { color: #c0c0c0; }
 .bronze { color: #cd7f32; }
+
+.tabs {
+    display: flex;
+    border-bottom: 2px solid #444;
+}
+
+.tab-link {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    background-color: transparent;
+    color: #e0e0e0;
+    font-size: 16px;
+    border-bottom: 2px solid transparent;
+}
+
+.tab-link:hover {
+    background-color: #333;
+}
+
+.tab-link.active {
+    border-bottom-color: #00aaff;
+    color: #00aaff;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.sortable-header th {
+    cursor: pointer;
+    position: relative;
+}
+
+.sortable-header th:hover {
+    background-color: #0088cc;
+}
+
+.sortable-header th.sorted-asc::after,
+.sortable-header th.sorted-desc::after {
+    content: '';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 5px solid transparent;
+}
+
+.sortable-header th.sorted-asc::after {
+    border-bottom-color: #1a1a1a;
+}
+
+.sortable-header th.sorted-desc::after {
+    border-top-color: #1a1a1a;
+}
+
+.chart-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 20px auto;
+}

@@ -14,6 +14,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let serverData = [];
     let allPriceData = []; // This will be our master list of all items.
+    let sortColumn = 'name'; // Default sort column
+    let sortDirection = 'asc'; // Default sort direction
+    let priceChart = null; // To hold the chart instance
+
+    // Tab switching logic
+    document.querySelectorAll('.tab-link').forEach(button => {
+        button.addEventListener('click', () => {
+            const tabName = button.dataset.tab;
+            
+            // Update button active state
+            document.querySelectorAll('.tab-link').forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+
+            // Show/hide tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.style.display = content.id === tabName ? 'block' : 'none';
+            });
+        });
+    });
 
     async function populateServers() {
         try {
@@ -68,6 +87,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Add event listeners for sorting
+    document.querySelectorAll('.sortable-header th').forEach(header => {
+        header.addEventListener('click', () => {
+            const newSortColumn = header.dataset.sortBy;
+            if (sortColumn === newSortColumn) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = newSortColumn;
+                sortDirection = 'asc';
+            }
+            renderTable();
+        });
+    });
+
     fetchBtn.addEventListener('click', async () => {
         fetchBtn.disabled = true;
         fetchBtn.textContent = 'Fetching...';
@@ -95,18 +128,95 @@ document.addEventListener('DOMContentLoaded', () => {
         return html;
     }
 
+    function updatePriceDistributionChart(priceData) {
+        const ctx = document.getElementById('price-distribution-chart').getContext('2d');
+        
+        const priceRanges = {
+            "0-1g": 0,
+            "1-10g": 0,
+            "10-50g": 0,
+            "50-100g": 0,
+            "100-500g": 0,
+            "500g+": 0
+        };
+
+        priceData.forEach(item => {
+            const gold = item.price / 10000;
+            if (gold < 1) priceRanges["0-1g"]++;
+            else if (gold < 10) priceRanges["1-10g"]++;
+            else if (gold < 50) priceRanges["10-50g"]++;
+            else if (gold < 100) priceRanges["50-100g"]++;
+            else if (gold < 500) priceRanges["100-500g"]++;
+            else priceRanges["500g+"]++;
+        });
+
+        if (priceChart) {
+            priceChart.destroy();
+        }
+
+        priceChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(priceRanges),
+                datasets: [{
+                    label: '# of Items',
+                    data: Object.values(priceRanges),
+                    backgroundColor: 'rgba(0, 170, 255, 0.5)',
+                    borderColor: 'rgba(0, 170, 255, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
     function renderTable() {
         const tableBody = document.querySelector('#price-table tbody');
         const searchTerm = searchBar.value.toLowerCase();
 
         const dataToRender = searchTerm
-            ? allPriceData.filter(item => item.name.toLowerCase().includes(searchTerm))
+            ? allPriceData.filter(item => 
+                item.name.toLowerCase().includes(searchTerm) ||
+                item.id.toString().includes(searchTerm)
+              )
             : allPriceData;
 
         tableBody.innerHTML = ''; // Clear existing data
 
         if (dataToRender) {
-            dataToRender.sort((a, b) => a.name.localeCompare(b.name));
+            // Sorting logic
+            dataToRender.sort((a, b) => {
+                let aValue = a[sortColumn];
+                let bValue = b[sortColumn];
+                
+                // For name and icon, sort alphabetically
+                if (typeof aValue === 'string') {
+                    aValue = aValue.toLowerCase();
+                    bValue = bValue.toLowerCase();
+                }
+
+                if (aValue < bValue) {
+                    return sortDirection === 'asc' ? -1 : 1;
+                }
+                if (aValue > bValue) {
+                    return sortDirection === 'asc' ? 1 : -1;
+                }
+                return 0;
+            });
+
+            // Update header classes for sort indicators
+            document.querySelectorAll('.sortable-header th').forEach(th => {
+                th.classList.remove('sorted-asc', 'sorted-desc');
+                if (th.dataset.sortBy === sortColumn) {
+                    th.classList.add(sortDirection === 'asc' ? 'sorted-asc' : 'sorted-desc');
+                }
+            });
             
             for (const item of dataToRender) {
                 const row = document.createElement('tr');
@@ -129,10 +239,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // This function can be called on startup or after fetching names,
         // so we need to hide the server selection and show the main content.
         document.getElementById('server-selection').style.display = 'none';
-        document.getElementById('main-content').style.display = 'block';
+        document.getElementById('app-container').style.display = 'block';
 
         allPriceData = newData;
         renderTable();
+        updatePriceDistributionChart(allPriceData); // Update the chart
         return true; 
     }
     // We expose the function to Python by attaching it to the window object.
