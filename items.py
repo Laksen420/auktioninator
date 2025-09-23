@@ -54,27 +54,28 @@ def save_item_to_db(item_data):
     conn.close()
 
 def fetch_items_from_api_bulk(item_ids, server_slug, realm_slug):
-    """Fetches item details in bulk using query parameters."""
+    """Fetches item details in bulk using the paginated endpoint with ID filters."""
     url = f"https://lotkeeper.net/api/v1/items/{server_slug}/{realm_slug}"
     all_items = {}
     
     # Batch item IDs to avoid creating URLs that are too long.
-    batch_size = 200
+    batch_size = 100 # Keep batches reasonably small
     
     for i in range(0, len(item_ids), batch_size):
         batch_ids = item_ids[i:i+batch_size]
         
-        params = {
-            'item_ids': batch_ids,
-            'limit': 1000  # Fetch up to 1000 items at once
-        }
+        # API filtering might expect a comma-separated string for multiple IDs.
+        # Let's try the parameter name `item_ids` (plural).
+        params = {'item_ids': ','.join(map(str, batch_ids))}
         
         try:
             response = requests.get(url, params=params)
             response.raise_for_status()
             
             data = response.json()
+            print(f"DEBUG: API response for item batch: {json.dumps(data)}")
             
+            # The paginated endpoint returns a dictionary with a 'data' key
             for item in data.get('data', []):
                 all_items[item['id']] = item
         

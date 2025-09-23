@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const serverSelectionDiv = document.getElementById('server-selection');
     const mainContentDiv = document.getElementById('main-content');
     const searchBar = document.getElementById('search-bar');
+    const searchBtn = document.getElementById('search-btn');
     const fetchBtn = document.getElementById('fetch-names-btn');
 
     let serverData = [];
@@ -107,6 +108,45 @@ document.addEventListener('DOMContentLoaded', () => {
         await window.pywebview.api.fetch_and_update_item_details();
         fetchBtn.disabled = false;
         fetchBtn.textContent = 'Fetch Item Names';
+    });
+
+    searchBtn.addEventListener('click', async () => {
+        const searchTerm = searchBar.value.trim();
+        if (!searchTerm) {
+            return;
+        }
+
+        searchBtn.disabled = true;
+        // Simple text loading state
+        const originalContent = searchBtn.innerHTML;
+        searchBtn.textContent = '...';
+
+        try {
+            const searchResults = await window.pywebview.api.search_item(searchTerm);
+            
+            if (searchResults && searchResults.length > 0) {
+                const existingIds = new Set(allPriceData.map(item => item.id));
+                
+                searchResults.forEach(newItem => {
+                    if (!existingIds.has(newItem.id)) {
+                        allPriceData.push(newItem);
+                        existingIds.add(newItem.id); // Add to set to handle duplicates within searchResults
+                    }
+                });
+                
+                // Re-render the table. The existing filter logic will pick up the new items.
+                renderTable();
+            } else {
+                // Optional: handle no results found, e.g., show a message
+                console.log("No new items found from search.");
+            }
+
+        } catch (error) {
+            console.error("Error during item search:", error);
+        } finally {
+            searchBtn.disabled = false;
+            searchBtn.innerHTML = originalContent; // Restore original SVG
+        }
     });
 
     searchBar.addEventListener('input', renderTable);

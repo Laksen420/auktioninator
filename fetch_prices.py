@@ -125,3 +125,31 @@ def process_and_save_data(auction_data, file_path):
         print(f"Successfully saved price data to {file_path}")
     except IOError as e:
         print(f"Error saving file: {e}")
+
+def search_item_auctions(server_slug, realm_slug, item_name):
+    """
+    Searches for auctions of a specific item by name from the Lotkeeper API.
+    """
+    base_url = "https://lotkeeper.net/api/v1/auctions"
+    url = f"{base_url}/{server_slug}/{realm_slug}"
+    params = {'item_name': item_name}
+    
+    print(f"Searching for '{item_name}' on {server_slug}-{realm_slug} from: {url}")
+    
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        
+        search_results = response.json()
+        
+        print(f"Successfully fetched search results. Found {len(search_results.get('data', []))} listings.")
+        
+        # The endpoint is paginated, we get a dict with 'data'
+        return search_results.get('data', [])
+
+    except requests.exceptions.HTTPError as errh:
+        print(f"Http Error: {errh}")
+    except requests.exceptions.RequestException as err:
+        print(f"Oops: Something Else: {err}")
+    
+    return None

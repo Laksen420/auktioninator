@@ -61,6 +61,8 @@ button:hover {
 
 .controls {
     margin-bottom: 10px;
+    display: flex;
+    align-items: center;
 }
 
 #search-bar {
@@ -69,6 +71,23 @@ button:hover {
     border: 1px solid #444;
     background-color: #333;
     color: #e0e0e0;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-right: none;
+}
+
+.icon-btn {
+    padding: 5px;
+    background-color: #333;
+    border: 1px solid #444;
+    color: #e0e0e0;
+    cursor: pointer;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.icon-btn:hover {
+    background-color: #444;
 }
 
 .item-icon {

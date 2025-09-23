@@ -41,6 +41,65 @@ class Api:
         print("Item details fetch complete.")
         return True
 
+    def search_item(self, item_name):
+        if not (self.selected_server_slug and self.selected_realm_slug):
+            print("Error: Server and realm not selected.")
+            return []
+
+        print(f"Performing search for item: {item_name}")
+        auction_data = fetch_prices.search_item_auctions(self.selected_server_slug, self.selected_realm_slug, item_name)
+        
+        if not auction_data:
+            print("No results found for the search.")
+            return []
+        
+        print(f"DEBUG: Found {len(auction_data)} auction listings from search. First result: {auction_data[0] if auction_data else 'N/A'}")
+
+        # Process the search results to find min prices and gather item details
+        min_prices = {}
+        item_details_from_search = {}
+        for auction in auction_data:
+            if auction.get('unit_buyout_price') and auction['unit_buyout_price'] > 0 and auction.get('item'):
+                item = auction['item']
+                item_id = item['id']
+                price_per_item = auction['unit_buyout_price']
+
+                # Store the item details if we haven't seen this item yet
+                if item_id not in item_details_from_search:
+                    item_details_from_search[item_id] = item
+                
+                # Update the minimum price for this item
+                if item_id in min_prices:
+                    if price_per_item < min_prices[item_id]:
+                        min_prices[item_id] = price_per_item
+                else:
+                    min_prices[item_id] = price_per_item
+        
+        if not min_prices:
+            print("DEBUG: min_prices dictionary is empty after processing. No items with buyout found.")
+            return []
+        
+        print(f"DEBUG: min_prices has {len(min_prices)} items. Example item_id: {next(iter(min_prices))}")
+
+        # Now, combine the data. No need for a separate item details fetch.
+        combined_data = []
+        for item_id, price in min_prices.items():
+            details = item_details_from_search.get(item_id, {})
+            # Also save the newly found item details to our local DB for future use
+            if details:
+                items.save_item_to_db(details)
+
+            combined_data.append({
+                "id": item_id,
+                "price": price,
+                "name": details.get("name", "Unknown"),
+                "quality": details.get("quality", 0),
+                "icon": details.get("icon", "inv_misc_questionmark")
+            })
+        
+        print(f"DEBUG: Returning {len(combined_data)} items to frontend. Example: {combined_data[0] if combined_data else 'N/A'}")
+        return combined_data
+
     def _get_price_data(self, fetch_missing_items=False):
         if not os.path.exists("Data.lua"):
             return None
@@ -95,4 +154,4 @@ if __name__ == '__main__':
     data_thread.start()
 
     window = webview.create_window('Auktioninator', 'web/main.html', js_api=api)
-    webview.start()
+    webview.start(debug=True)
