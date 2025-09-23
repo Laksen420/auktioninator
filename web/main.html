@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auktioninator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Auktioninator</h1>
+
+    <div id="server-selection">
+        <h2>Select Server and Realm</h2>
+        <select id="server-select"></select>
+        <select id="realm-select"></select>
+        <button id="confirm-selection">Confirm</button>
+    </div>
+
+    <div id="main-content" style="display: none;">
+        <h2>Item Prices</h2>
+        <div class="controls">
+            <input type="text" id="search-bar" placeholder="Search for items...">
+            <button id="fetch-names-btn">Fetch Item Names</button>
+        </div>
+        <table id="price-table">
+            <thead>
+                <tr>
+                    <th>Icon</th>
+                    <th>Item Name</th>
+                    <th>Item ID</th>
+                    <th>Minimum Price (in copper)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Price data will be inserted here by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>

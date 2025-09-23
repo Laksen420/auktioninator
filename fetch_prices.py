@@ -1,5 +1,6 @@
 import requests
 import json
+import time
 
 def get_server_realms():
     """
@@ -124,19 +125,3 @@ def process_and_save_data(auction_data, file_path):
         print(f"Successfully saved price data to {file_path}")
     except IOError as e:
         print(f"Error saving file: {e}")
-
-if __name__ == "__main__":
-    server_realms = get_server_realms()
-    if not server_realms:
-        exit()
-
-    server_slug, realm_slug = select_server_and_realm(server_realms)
-    
-    if not server_slug or not realm_slug:
-        print("Could not determine server and realm. Aborting.")
-        exit()
-
-    auction_data = fetch_auction_data(server_slug, realm_slug)
-
-    if auction_data:
-        process_and_save_data(auction_data, "Data.lua")
