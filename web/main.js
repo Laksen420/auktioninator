@@ -60,12 +60,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectedServer = serverData[selectedServerIndex];
             realmSelect.innerHTML = ''; // Clear previous options
             if (selectedServer.realms && selectedServer.realms.length > 0) {
+                let kezanIndex = -1;
                 selectedServer.realms.forEach((realm, index) => {
                     const option = document.createElement('option');
                     option.value = index;
                     option.textContent = realm.realm;
                     realmSelect.appendChild(option);
+                    // Check for Kezan, case-insensitive
+                    if (realm.realm.toLowerCase() === 'kezan') {
+                        kezanIndex = index;
+                    }
                 });
+                
+                // If Kezan was found, set it as the selected realm
+                if (kezanIndex !== -1) {
+                    realmSelect.value = kezanIndex;
+                }
             }
         }
     }
@@ -269,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${item.id}</td>
                     <td>${formatPrice(item.price)}</td>
                 `;
+                row.dataset.itemId = item.id; // Add data-item-id attribute
                 tableBody.appendChild(row);
             }
         }
@@ -288,4 +299,87 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // We expose the function to Python by attaching it to the window object.
     window.updateMasterData = updateMasterData;
+
+    // --- Price History Chart Logic ---
+
+    const tableBody = document.querySelector('#price-table tbody');
+
+    tableBody.addEventListener('click', async (event) => {
+        let targetRow = event.target.closest('tr');
+        if (!targetRow || !targetRow.dataset.itemId) return; // Not a valid item row
+
+        // Toggle details row
+        const existingDetailsRow = targetRow.nextElementSibling;
+        if (existingDetailsRow && existingDetailsRow.classList.contains('details-row')) {
+            existingDetailsRow.remove();
+            targetRow.classList.remove('active-row');
+            return;
+        }
+
+        // Remove any other open details rows
+        document.querySelectorAll('.details-row').forEach(row => row.remove());
+        document.querySelectorAll('.active-row').forEach(row => row.classList.remove('active-row'));
+        
+        targetRow.classList.add('active-row');
+
+        const itemId = targetRow.dataset.itemId;
+        const template = document.getElementById('details-row-template');
+        const detailsRow = template.content.cloneNode(true);
+        targetRow.after(detailsRow);
+
+        const canvas = targetRow.nextElementSibling.querySelector('.price-history-chart');
+        
+        try {
+            const historyData = await window.pywebview.api.get_item_price_history(itemId);
+            if (historyData && historyData.length > 0) {
+                renderPriceHistoryChart(canvas, historyData);
+            } else {
+                canvas.getContext('2d').fillText('No price history available.', 10, 50);
+            }
+        } catch (error) {
+            console.error(`Failed to fetch or render price history for item ${itemId}:`, error);
+            canvas.getContext('2d').fillText('Error loading chart.', 10, 50);
+        }
+    });
+
+    function renderPriceHistoryChart(canvas, historyData) {
+        const timestamps = historyData.map(d => new Date(d.timestamp));
+        const minPrices = historyData.map(d => d.min_buyout_price / 10000); // Convert to gold
+
+        new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: timestamps,
+                datasets: [{
+                    label: 'Minimum Buyout Price (Gold)',
+                    data: minPrices,
+                    borderColor: 'gold',
+                    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'day',
+                            tooltipFormat: 'MMM D, YYYY h:mm a'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    },
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Price (Gold)'
+                        }
+                    }
+                }
+            }
+        });
+    }
 });

@@ -14,6 +14,13 @@ class Api:
         self.selected_server_slug = None
         self.selected_realm_slug = None
 
+    def get_item_price_history(self, item_id):
+        if not self.selected_server_slug or not self.selected_realm_slug:
+            print("Server and realm not selected.")
+            return None
+        
+        return items.get_price_history_for_item(int(item_id))
+
     def get_server_list(self):
         return fetch_prices.get_server_realms()
 
@@ -49,6 +56,11 @@ class Api:
         print(f"Performing search for item: {item_name}")
         auction_data = fetch_prices.search_item_auctions(self.selected_server_slug, self.selected_realm_slug, item_name)
         
+        if auction_data:
+            # Also save this search data to our history
+            print(f"Saving price data for {len(auction_data)} found listings to history.")
+            items.save_price_history(auction_data)
+
         if not auction_data:
             print("No results found for the search.")
             return []
@@ -140,6 +152,10 @@ def data_fetch_loop(api):
             print(f"Background Fetch: Fetching data for {api.selected_server_slug} - {api.selected_realm_slug}")
             auction_data = fetch_prices.fetch_auction_data(api.selected_server_slug, api.selected_realm_slug)
             if auction_data:
+                # Save the raw scan data for historical analysis
+                items.save_price_history(auction_data)
+                
+                # Continue with existing logic to update the addon file
                 fetch_prices.process_and_save_data(auction_data, "Data.lua")
                 updated_data = api._get_price_data(fetch_missing_items=False)
                 if updated_data:
@@ -147,6 +163,7 @@ def data_fetch_loop(api):
 
 
 if __name__ == '__main__':
+    items.initialize_database()
     api = Api()
     
     data_thread = threading.Thread(target=data_fetch_loop, args=(api,))
