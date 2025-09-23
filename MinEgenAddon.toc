@@ -1,0 +1,11 @@
+## Interface: 30300
+## Title: MinEgenAddon
+## Notes: My own addon
+## Version: 1.0
+## SavedVariables: MinEgenAddon_Settings
+
+Data.lua
+Groups.lua
+UI.lua
+AH.lua
+Core.lua
