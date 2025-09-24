@@ -32,6 +32,8 @@ class Api:
         print("Performing initial data fetch...")
         auction_data = fetch_prices.fetch_auction_data(server_slug, realm_slug)
         if auction_data:
+            # Save the raw scan data for historical analysis
+            items.save_price_history(auction_data)
             fetch_prices.process_and_save_data(auction_data, "Data.lua")
             combined_data = self._get_price_data(fetch_missing_items=False)
             if combined_data:
@@ -145,8 +147,8 @@ def data_fetch_loop(api):
         time.sleep(1) 
 
     while True:
-        print("Next background update in 20 minutes...")
-        time.sleep(1200)
+        print("Next background update in 16 minutes...")
+        time.sleep(960)
 
         if api.selected_server_slug and api.selected_realm_slug:
             print(f"Background Fetch: Fetching data for {api.selected_server_slug} - {api.selected_realm_slug}")

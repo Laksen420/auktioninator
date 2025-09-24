@@ -7,7 +7,7 @@ from datetime import datetime
 DB_FILE = "items.db"
 
 def get_db_connection():
-    """Establishes a connection to the database."""
+    """Returns a connection to the SQLite database."""
     return sqlite3.connect(DB_FILE)
 
 def initialize_database():
@@ -29,6 +29,38 @@ def initialize_database():
                 class_name TEXT
             )
         """)
+
+        # --- Start of Schema Migration ---
+        
+        # Get existing columns from the 'items' table
+        cursor.execute("PRAGMA table_info(items)")
+        existing_columns = {info[1] for info in cursor.fetchall()}
+
+        # Define the complete, expected schema for the 'items' table
+        expected_schema = {
+            'id': 'INTEGER',
+            'name': 'TEXT',
+            'link': 'TEXT',
+            'icon': 'TEXT',
+            'level': 'INTEGER',
+            'quality': 'INTEGER',
+            'max_stack_size': 'INTEGER',
+            'vendor_price': 'INTEGER',
+            'class_index': 'INTEGER',
+            'class_name': 'TEXT'
+        }
+
+        # Add any missing columns
+        for column_name, column_type in expected_schema.items():
+            if column_name not in existing_columns:
+                print(f"Adding '{column_name}' column to 'items' table for schema migration.")
+                # We can't add a PRIMARY KEY to an existing table this way, and 'id' should always exist.
+                if column_name == 'id':
+                    continue
+                cursor.execute(f"ALTER TABLE items ADD COLUMN {column_name} {column_type}")
+        
+        # --- End of Schema Migration ---
+
         # Price history table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS price_history (
@@ -145,29 +177,32 @@ def fetch_items_from_api_bulk(item_ids, server_slug, realm_slug):
     base_url = f"https://lotkeeper.net/api/v1/items/{server_slug}/{realm_slug}"
     all_fetched_items = {}
     
-    # Lotkeeper API seems to support multiple 'id' params
-    params = [('id', item_id) for item_id in item_ids]
+    # Split item_ids into chunks to avoid creating a URL that is too long
+    chunk_size = 100 
+    item_id_chunks = [item_ids[i:i + chunk_size] for i in range(0, len(item_ids), chunk_size)]
     
-    try:
-        response = requests.get(base_url, params=params)
-        response.raise_for_status()
-        fetched_data = response.json()
+    for chunk in item_id_chunks:
+        params = [('id', item_id) for item_id in chunk]
         
-        # The endpoint is paginated, we get a dict with 'data'
-        for item in fetched_data.get('data', []):
-            item_id = item['id']
-            all_fetched_items[item_id] = item
-            save_item_to_db(item) # Save new items to DB for future use
+        try:
+            response = requests.get(base_url, params=params)
+            response.raise_for_status()
+            fetched_data = response.json()
             
-        print(f"Successfully fetched details for {len(all_fetched_items)} items from API.")
-        return all_fetched_items
+            # The endpoint is paginated, we get a dict with 'data'
+            for item in fetched_data.get('data', []):
+                item_id = item['id']
+                all_fetched_items[item_id] = item
+                save_item_to_db(item) # Save new items to DB for future use
+                
+            print(f"Successfully fetched details for {len(chunk)} items from API.")
 
-    except requests.exceptions.HTTPError as errh:
-        print(f"Http Error during bulk item fetch: {errh}")
-    except requests.exceptions.RequestException as err:
-        print(f"Request Error during bulk item fetch: {err}")
+        except requests.exceptions.HTTPError as errh:
+            print(f"Http Error during bulk item fetch: {errh}")
+        except requests.exceptions.RequestException as err:
+            print(f"Request Error during bulk item fetch: {err}")
     
-    return {}
+    return all_fetched_items
 
 def get_item_details(item_ids, server, realm, fetch_missing=False):
     """
