@@ -169,6 +169,18 @@ def get_price_history_for_item(item_id):
         
         return [{"timestamp": row[0], "min_buyout_price": row[1]} for row in cursor.fetchall()]
 
+def get_quantity_history_for_item(item_id):
+    """Retrieves the quantity history for a specific item from the local database."""
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT timestamp, total_quantity FROM price_history
+            WHERE item_id = ?
+            ORDER BY timestamp
+        """, (item_id,))
+        
+        return [{"timestamp": row[0], "total_quantity": row[1]} for row in cursor.fetchall()]
+
 def fetch_items_from_api_bulk(item_ids, server_slug, realm_slug):
     """Fetches item details in bulk using the paginated endpoint with ID filters."""
     if not item_ids:

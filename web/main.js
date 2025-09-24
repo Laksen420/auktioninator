@@ -303,50 +303,92 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Price History Chart Logic ---
 
     const tableBody = document.querySelector('#price-table tbody');
+    let activeCharts = {}; // To hold the chart instances for the open details row
 
     tableBody.addEventListener('click', async (event) => {
         let targetRow = event.target.closest('tr');
         if (!targetRow || !targetRow.dataset.itemId) return; // Not a valid item row
 
-        // Toggle details row
         const existingDetailsRow = targetRow.nextElementSibling;
         if (existingDetailsRow && existingDetailsRow.classList.contains('details-row')) {
+            // If the row is already open, close it and destroy its charts
+            Object.values(activeCharts).forEach(chart => chart.destroy());
+            activeCharts = {};
             existingDetailsRow.remove();
             targetRow.classList.remove('active-row');
             return;
         }
 
-        // Remove any other open details rows
+        // --- Row is being opened ---
+
+        // Close any other open details rows and destroy their charts first
         document.querySelectorAll('.details-row').forEach(row => row.remove());
         document.querySelectorAll('.active-row').forEach(row => row.classList.remove('active-row'));
+        Object.values(activeCharts).forEach(chart => chart.destroy());
+        activeCharts = {};
         
         targetRow.classList.add('active-row');
 
         const itemId = targetRow.dataset.itemId;
         const template = document.getElementById('details-row-template');
-        const detailsRow = template.content.cloneNode(true);
+        // Clone the template's content correctly. The content is a DocumentFragment
+        // and its first element is the <tr> we want.
+        const detailsRow = template.content.firstElementChild.cloneNode(true);
         targetRow.after(detailsRow);
 
-        const canvas = targetRow.nextElementSibling.querySelector('.price-history-chart');
-        
+        // Get canvases
+        const priceCanvas = detailsRow.querySelector('.price-history-chart');
+        const quantityCanvas = detailsRow.querySelector('.quantity-history-chart');
+
+        // Fetch data for both charts in parallel
         try {
-            const historyData = await window.pywebview.api.get_item_price_history(itemId);
-            if (historyData && historyData.length > 0) {
-                renderPriceHistoryChart(canvas, historyData);
+            const [priceHistory, quantityHistory] = await Promise.all([
+                window.pywebview.api.get_item_price_history(itemId),
+                window.pywebview.api.get_item_quantity_history(itemId)
+            ]);
+
+            if (priceHistory && priceHistory.length > 0) {
+                renderPriceHistoryChart(priceCanvas, priceHistory);
             } else {
-                canvas.getContext('2d').fillText('No price history available.', 10, 50);
+                priceCanvas.getContext('2d').fillText('No price history available.', 10, 50);
             }
+
+            if (quantityHistory && quantityHistory.length > 0) {
+                renderQuantityHistoryChart(quantityCanvas, quantityHistory);
+            } else {
+                quantityCanvas.getContext('2d').fillText('No quantity history available.', 10, 50);
+            }
+
         } catch (error) {
-            console.error(`Failed to fetch or render price history for item ${itemId}:`, error);
-            canvas.getContext('2d').fillText('Error loading chart.', 10, 50);
+            console.error(`Failed to fetch or render history for item ${itemId}:`, error);
+            priceCanvas.getContext('2d').fillText('Error loading chart.', 10, 50);
+            quantityCanvas.getContext('2d').fillText('Error loading chart.', 10, 50);
         }
+
+        // Add event listeners for the new graph tabs
+        detailsRow.querySelectorAll('.graph-tabs-vertical .tab-link').forEach(button => {
+            button.addEventListener('click', () => {
+                const graphName = button.dataset.graph;
+
+                // Update active button
+                detailsRow.querySelectorAll('.graph-tabs-vertical .tab-link').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                // Show/hide graph panes
+                detailsRow.querySelectorAll('.graph-pane').forEach(pane => {
+                    // Use style.display because the 'active' class is for the initial state
+                    pane.style.display = pane.id === graphName ? 'block' : 'none';
+                });
+            });
+        });
     });
 
     function renderPriceHistoryChart(canvas, historyData) {
+        if (!canvas) return;
         const timestamps = historyData.map(d => new Date(d.timestamp));
         const minPrices = historyData.map(d => d.min_buyout_price / 10000); // Convert to gold
 
-        new Chart(canvas, {
+        activeCharts['price'] = new Chart(canvas, {
             type: 'line',
             data: {
                 labels: timestamps,
@@ -359,6 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }]
             },
             options: {
+                maintainAspectRatio: false,
                 scales: {
                     x: {
                         type: 'time',
@@ -373,9 +416,61 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     y: {
                         beginAtZero: false,
+                        ticks: {
+                            callback: function(value, index, values) {
+                                return value + 'g';
+                            }
+                        },
                         title: {
                             display: true,
                             text: 'Price (Gold)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function renderQuantityHistoryChart(canvas, historyData) {
+        if (!canvas) return;
+        const timestamps = historyData.map(d => new Date(d.timestamp));
+        const quantities = historyData.map(d => d.total_quantity);
+
+        activeCharts['quantity'] = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: timestamps,
+                datasets: [{
+                    label: 'Total Quantity on AH',
+                    data: quantities,
+                    borderColor: '#00aaff',
+                    backgroundColor: 'rgba(0, 170, 255, 0.1)',
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'day',
+                            tooltipFormat: 'MMM D, YYYY h:mm a'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        },
+                        title: {
+                            display: true,
+                            text: 'Quantity'
                         }
                     }
                 }

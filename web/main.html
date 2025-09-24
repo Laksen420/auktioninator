@@ -64,8 +64,19 @@
     <template id="details-row-template">
         <tr class="details-row">
             <td colspan="4">
-                <div class="details-container">
-                    <canvas class="price-history-chart"></canvas>
+                <div class="details-layout">
+                    <div class="graph-tabs-vertical">
+                        <button class="tab-link active" data-graph="price">Price History</button>
+                        <button class="tab-link" data-graph="quantity">Quantity History</button>
+                    </div>
+                    <div class="graph-content">
+                        <div id="price" class="graph-pane active">
+                            <canvas class="price-history-chart"></canvas>
+                        </div>
+                        <div id="quantity" class="graph-pane">
+                            <canvas class="quantity-history-chart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </td>
         </tr>

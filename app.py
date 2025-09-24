@@ -21,6 +21,13 @@ class Api:
         
         return items.get_price_history_for_item(int(item_id))
 
+    def get_item_quantity_history(self, item_id):
+        if not self.selected_server_slug or not self.selected_realm_slug:
+            print("Server and realm not selected.")
+            return None
+        
+        return items.get_quantity_history_for_item(int(item_id))
+
     def get_server_list(self):
         return fetch_prices.get_server_realms()
 

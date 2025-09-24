@@ -165,3 +165,46 @@ button:hover {
     max-width: 800px;
     margin: 20px auto;
 }
+
+.details-layout {
+    display: flex;
+    padding: 10px;
+}
+
+.graph-tabs-vertical {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #444;
+    padding-right: 10px;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.graph-tabs-vertical .tab-link {
+    background-color: transparent;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    color: #e0e0e0;
+    text-align: left;
+    border-left: 3px solid transparent;
+}
+
+.graph-tabs-vertical .tab-link.active {
+    border-left-color: #00aaff;
+    color: #00aaff;
+}
+
+.graph-content {
+    flex-grow: 1;
+    min-width: 0; /* Prevents flexbox overflow issues */
+    position: relative; /* Provides a positioning context for Chart.js */
+}
+
+.graph-pane {
+    display: none;
+}
+
+.graph-pane.active {
+    display: block;
+}
